@@ -1,106 +1,189 @@
+import javax.xml.crypto.Data;
 import java.io.IOException;
-import java.util.InputMismatchException;
-import java.util.Random;
-import java.util.Scanner;
+import java.lang.ref.Cleaner;
+import java.util.*;
 
-public class OOP {
-
+public class OOP
+{
     public static Scanner sc = new Scanner(System.in);
-    public static BankAccount bankAccount;
+
+    public static List<User> usersDataList = DataSystem.readUser();
+    public static List<Book> usersBookList = DataSystem.readUserBooks();
+    public static String currentUser;
 
     public static void main(String[] args)
     {
-        bankAccount = new BankAccount(generateAccountNumber(), "Bogdan", 50);
 
         while (true)
         {
-            System.out.println("\033[2J\033[1;1H");
+            clearTerminal();
+            System.out.println("\nLibrary Management System\n");
 
-
-            System.out.println("Account's No: " + bankAccount.getAccountNumber());
-            System.out.println("Holder name: " + bankAccount.getAccountHolderName());
-            System.out.println("Balance: $" + bankAccount.getBalance());
-
-            System.out.println("\n1. Withdraw: \n2. Deposit\n3. Exit\n");
+            System.out.println("1. Register\n2. Login\n3. Exit");
+            System.out.print("\nEnter your choice: ");
 
             try
             {
-                System.out.print("Enter your choice: ");
                 int choice = sc.nextInt();
 
                 switch (choice)
                 {
-                    case 1 -> {
-                        withdrawBalance();
-                    }
-                    case 2 -> {
-                        depositBalance();
-                    }
-                    case 3 -> {
-                        System.exit(0);
-                    }
+                    case 1 -> registerUser();
+                    case 2 -> loginUser();
+                    case 3 -> System.exit(0);
                     default -> {
-                        System.out.println("Invalid Choice!");
-                        withdrawBalance();
+                        clearTerminal();
+                        System.out.println("Invalid choice!");
+                        delay();
                     }
                 }
+
             } catch (InputMismatchException e) {
-                System.out.println("Invalid input!");
+                clearTerminal();
+                System.out.println("Invalid choice!");
+                delay();
                 break;
             }
         }
     }
 
-    public static void withdrawBalance()
+    public static void registerUser()
     {
-        System.out.print("\033[H\033[2J");
-        System.out.flush();
+        clearTerminal();
+        System.out.println("\nRegister Menu\n");
 
-        System.out.println("Balance: " + bankAccount.getBalance() + "\n");
-        System.out.print("Enter the amount you want to withdraw: ");
+        System.out.print("Enter a username: ");
+        String username = sc.next();
 
-        int amount = sc.nextInt();
+        System.out.print("Enter a password: ");
+        String password = sc.next();
 
-        if (amount > bankAccount.getBalance()) {
+        User user = new User(username, password);
 
-            System.out.println("Insufficent balance!");
-
-        } else {
-
-            double newBalance = bankAccount.getBalance() - amount;
-            bankAccount.setBalance(newBalance);
+        if (DataSystem.registerUser(user))
+        {
+            clearTerminal();
+            System.out.println("\nRegister successful! You can log in now");
+            delay();
+        }
+        else
+        {
+            clearTerminal();
+            System.out.println("\nUnsuccesful register. Try again");
+            delay();
+            registerUser();
         }
     }
-    public static void depositBalance()
+
+    public static void loginUser()
     {
-        System.out.print("\033[H\033[2J");
-        System.out.flush();
+        clearTerminal();
+        System.out.println("\nLogin Menu\n");
 
-        System.out.println("Balance: " + bankAccount.getBalance() + "\n");
-        System.out.print("Enter the amount you want to deposit: ");
+        sc.nextLine();
+        System.out.print("Enter your username: ");
+        String username = sc.nextLine();
 
-        int amount = sc.nextInt();
+        System.out.print("Enter your password: ");
+        String password = sc.nextLine();
 
-        double newBalance = bankAccount.getBalance() + amount;
-        bankAccount.setBalance(newBalance);
+        boolean userFound = false;
+        for (User user: usersDataList)
+        {
+            if (username.equals(user.getUsername()) && password.equals(user.getPassword()))
+            {
+                clearTerminal();
+                System.out.println("\nLogin successful! Welcome to the library!");
+                delay();
+
+                currentUser = username;
+                userFound = true;
+                mainMenu();
+                break;
+            }
+        }
+        if (!userFound)
+        {
+            clearTerminal();
+            System.out.println("\nUnsuccesful login! Try again.");
+            delay();
+        }
     }
 
-    public static String generateAccountNumber()
+    public static void mainMenu()
     {
-        StringBuilder sb = new StringBuilder();
-        Random random = new Random();
+        clearTerminal();
+        System.out.println("\nMain Menu\n");
 
-        for (int i = 0; i < 16; i++)
+        System.out.println("Your name: " + currentUser);
+        System.out.println("1. See your borrowed books\n2. Borrow a book\n3. Return a book\n4. Log out");
+        System.out.print("\nEnter your choice: ");
+
+        try
         {
-            if (i > 0 && i % 4 == 0)
+            int choice = sc.nextInt();
+
+            switch (choice)
             {
-                sb.append(" ");
+                case 1 -> seeBorrowedBooks();
+//                case 2 -> borrowABook();
+//                case 3 -> returnABook();
+                case 4 -> {
+                    break;
+                }
+                default -> {
+                    clearTerminal();
+                    System.out.println("Invalid choice!");
+                    delay();
+                    mainMenu();
+                }
             }
 
-            sb.append(random.nextInt(10));
+        } catch (InputMismatchException e) {
+            clearTerminal();
+            System.out.println("Invalid choice!");
+            delay();
+            mainMenu();
         }
+    }
 
-        return sb.toString();
+    public static void seeBorrowedBooks()
+    {
+        clearTerminal();
+        System.out.println("\nYour Borrowed Books\n");
+
+        if (DataSystem.readUserBooks() == null)
+        {
+            System.out.println("\nNo books borrowed");
+        }
+        else
+        {
+            for (Book books: usersBookList)
+            {
+                System.out.println("Book's INB");
+            }
+        }
+    }
+
+    // UI METHODS
+
+    public static void clearTerminal()
+    {
+        System.out.print("\033[H\033[2J");
+        System.out.flush();
+    }
+
+    public  static void delay()
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            try
+            {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                System.out.println(e);
+            }
+        }
     }
 }
 
